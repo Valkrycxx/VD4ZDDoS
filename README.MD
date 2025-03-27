@@ -11,5 +11,5 @@ python 3.10+
 *for windows*: open start_GUI/start_terminal
 
 ## installation: 
-```pip install -r requirements```
+`` just open the "start installer.cmd" `` :)
 
