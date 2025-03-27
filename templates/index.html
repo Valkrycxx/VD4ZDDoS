@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VD4ZDDoS Web GUI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Helvetica', Arial, sans-serif;
+        }
+
+        :root {
+            --background-color: #1F1F1F;
+            --text-color: #E6E6E6;
+            --accent-color: #FF5A4E;
+            --sidebar-bg: #1A1A1A;
+            --container-bg: rgba(30, 30, 30, 0.98);
+            --input-bg: #2A2A2A;
+            --logs-bg: #252525;
+            --button-bg: linear-gradient(135deg, #FF5A4E, #E64438);
+        }
+
+        body {
+            background: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .container {
+            width: 950px;
+            height: 700px;
+            background: var(--container-bg);
+            border-radius: 25px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            overflow: hidden;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: center;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .container.expanded {
+            width: 1300px;
+        }
+
+        .container.full-view {
+            width: 100vw;
+            height: 100vh;
+            border-radius: 0;
+            transform: translate(0, 0);
+            top: 0;
+            left: 0;
+        }
+
+        .sidebar {
+            width: 130px;
+            background: var(--sidebar-bg);
+            padding: 25px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 35px;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            transition: width 0.5s ease;
+        }
+
+        .sidebar-item {
+            width: 90px;
+            height: 90px;
+            background: #333333;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .sidebar-item:hover {
+            background: var(--accent-color);
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 0 8px 20px rgba(255, 90, 78, 0.4);
+        }
+
+        .sidebar-item.active {
+            background: var(--accent-color);
+        }
+
+        .sidebar-item img {
+            width: 55px;
+            height: 55px;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-item:hover img {
+            transform: scale(1.1);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            transition: padding 0.5s ease;
+        }
+
+        .tab-content {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            height: 100%;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .tab-content.active {
+            opacity: 1;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-align: center;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 3px 6px rgba(255, 90, 78, 0.3); }
+            100% { text-shadow: 0 3px 15px rgba(255, 90, 78, 0.6); }
+        }
+
+        .input-section {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            align-items: center;
+            transition: justify-content 0.5s ease;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 15px;
+            color: #BBBBBB;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            padding: 12px 15px;
+            width: 280px;
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-color);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            background: #353535;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(255, 90, 78, 0.2);
+        }
+
+        .input-group input#threads,
+        .input-group input#medusa-threads,
+        .input-group input#medusa-time,
+        .input-group input#medusa-rate {
+            width: 130px;
+            -moz-appearance: textfield;
+        }
+
+        .input-group input#threads::-webkit-inner-spin-button,
+        .input-group input#threads::-webkit-outer-spin-button,
+        .input-group input#medusa-threads::-webkit-inner-spin-button,
+        .input-group input#medusa-threads::-webkit-outer-spin-button,
+        .input-group input#medusa-time::-webkit-inner-spin-button,
+        .input-group input#medusa-time::-webkit-outer-spin-button,
+        .input-group input#medusa-rate::-webkit-inner-spin-button,
+        .input-group input#medusa-rate::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .logs-section {
+            flex: 1;
+            background: var(--logs-bg);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+            color: #D0D0D0;
+            box-shadow: inset 0 3px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            min-height: 300px;
+        }
+
+        .logs-section:hover {
+            background: #2C2C2C;
+        }
+
+        .button-section {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            padding-bottom: 10px;
+            transition: padding 0.5s ease;
+        }
+
+        .button {
+            padding: 14px 35px;
+            background: var(--button-bg);
+            border: none;
+            border-radius: 12px;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255, 90, 78, 0.5);
+        }
+
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(255, 90, 78, 0.3);
+        }
+
+        .logs-section::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .logs-section::-webkit-scrollbar-track {
+            background: #2A2A2A;
+            border-radius: 10px;
+        }
+
+        .logs-section::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .logs-section::-webkit-scrollbar-thumb:hover {
+            background: #E64438;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section h2 {
+            font-size: 24px;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .settings-section h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .preset-btn {
+            padding: 8px 16px;
+            background: #1A1A1A;
+            border: none;
+            border-radius: 8px;
+            color: #FFFFFF;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .preset-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-1"] {
+            box-shadow: 0 0 8px rgba(255, 90, 78, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-1"]:hover {
+            box-shadow: 0 0 15px rgba(255, 90, 78, 1), 0 5px 20px rgba(255, 90, 78, 0.8);
+        }
+
+        .preset-btn[data-preset="preset-2"] {
+            box-shadow: 0 0 8px rgba(255, 90, 78, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-2"]:hover {
+            box-shadow: 0 0 15px rgba(255, 90, 78, 1), 0 5px 20px rgba(255, 90, 78, 0.8);
+        }
+
+        .preset-btn[data-preset="preset-3"] {
+            box-shadow: 0 0 8px rgba(100, 255, 218, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-3"]:hover {
+            box-shadow: 0 0 15px rgba(100, 255, 218, 1), 0 5px 20px rgba(100, 255, 218, 0.8);
+        }
+
+        .preset-btn[data-preset="preset-4"] {
+            box-shadow: 0 0 8px rgba(50, 205, 50, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-4"]:hover {
+            box-shadow: 0 0 15px rgba(50, 205, 50, 1), 0 5px 20px rgba(50, 205, 50, 0.8);
+        }
+
+        .preset-btn[data-preset="preset-5"] {
+            box-shadow: 0 0 8px rgba(218, 112, 214, 0.6);
+        }
+
+        .preset-btn[data-preset="preset-5"]:hover {
+            box-shadow: 0 0 15px rgba(218, 112, 214, 1), 0 5px 20px rgba(218, 112, 214, 0.8);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .toggle-btn {
+            width: 60px;
+            height: 60px;
+            background: #1A1A1A;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(255, 90, 78, 0.6);
+        }
+
+        .toggle-btn::before {
+            content: '✔';
+            font-size: 30px;
+            color: #FFFFFF;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-btn.active::before {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .toggle-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 90, 78, 0.4);
+        }
+
+        .toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .toggle-label {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .view-mode-toggle {
+            position: relative;
+            width: 140px;
+            height: 100px;
+            background: #1A1A1A;
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .view-mode-toggle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-color);
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 0;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        .view-mode-toggle.full::before {
+            top: 50%;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 10px var(--accent-color); }
+            100% { box-shadow: 0 0 25px var(--accent-color); }
+        }
+
+        .view-btn {
+            position: relative;
+            width: 100%;
+            height: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            z-index: 1;
+            transition: color 0.3s ease;
+        }
+
+        .view-btn:hover {
+            color: #FFFFFF;
+        }
+
+        .view-btn input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .view-btn::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .view-btn:hover::after {
+            width: 200px;
+            height: 200px;
+        }
+
+        .animations-off * {
+            animation-duration: 0s !important;
+            transition-duration: 0s !important;
+        }
+
+        .full-view .sidebar {
+            height: 100%;
+            width: 150px;
+        }
+
+        .full-view .main-content {
+            padding: 40px;
+        }
+
+        .full-view .input-section {
+            justify-content: flex-start;
+        }
+
+        .full-view .logs-section {
+            margin-top: 20px;
+            min-height: 400px;
+        }
+
+        .full-view .button-section {
+            padding-bottom: 20px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--container-bg);
+            color: var(--text-color);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            border: 1px solid rgba(255, 90, 78, 0.3);
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 90, 78, 0.1);
+            border-radius: 12px;
+            z-index: -1;
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        .setup-log-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background: var(--container-bg);
+            border-radius: 15px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+        }
+
+        .setup-log-popup.active {
+            display: flex;
+        }
+
+        .setup-log-header {
+            font-size: 20px;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .setup-log-content {
+            flex: 1;
+            background: var(--logs-bg);
+            border-radius: 10px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 14px;
+            color: #D0D0D0;
+        }
+
+        .setup-log-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .setup-log-content::-webkit-scrollbar-track {
+            background: #2A2A2A;
+            border-radius: 10px;
+        }
+
+        .setup-log-content::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 10px;
+        }
+
+        .setup-log-content::-webkit-scrollbar-thumb:hover {
+            background: #E64438;
+        }
+
+        .preset-1 {
+            --background-color: #1F1F1F;
+            --text-color: #E6E6E6;
+            --accent-color: #FF5A4E;
+            --sidebar-bg: #1A1A1A;
+            --container-bg: rgba(30, 30, 30, 0.98);
+            --input-bg: #2A2A2A;
+            --logs-bg: #252525;
+            --button-bg: linear-gradient(135deg, #FF5A4E, #E64438);
+        }
+
+        .preset-2 {
+            --background-color: #F0F0F0;
+            --text-color: #333333;
+            --accent-color: #FF5A4E;
+            --sidebar-bg: #E0E0E0;
+            --container-bg: rgba(255, 255, 255, 0.98);
+            --input-bg: #D0D0D0;
+            --logs-bg: #E5E5E5;
+            --button-bg: linear-gradient(135deg, #FF5A4E, #E64438);
+        }
+
+        .preset-3 {
+            --background-color: #0A192F;
+            --text-color: #E6F1FF;
+            --accent-color: #64FFDA;
+            --sidebar-bg: #001E3C;
+            --container-bg: rgba(10, 25, 47, 0.98);
+            --input-bg: #112240;
+            --logs-bg: #0A192F;
+            --button-bg: linear-gradient(135deg, #64FFDA, #4ACCB4);
+        }
+
+        .preset-4 {
+            --background-color: #1A2A1A;
+            --text-color: #E6FFE6;
+            --accent-color: #32CD32;
+            --sidebar-bg: #0F1F0F;
+            --container-bg: rgba(20, 40, 20, 0.98);
+            --input-bg: #223322;
+            --logs-bg: #1A2A1A;
+            --button-bg: linear-gradient(135deg, #32CD32, #228B22);
+        }
+
+        .preset-5 {
+            --background-color: #2A1A2A;
+            --text-color: #F0E6F0;
+            --accent-color: #DA70D6;
+            --sidebar-bg: #1F0F1F;
+            --container-bg: rgba(40, 20, 40, 0.98);
+            --input-bg: #332233;
+            --logs-bg: #2A1A2A;
+            --button-bg: linear-gradient(135deg, #DA70D6, #BA55D3);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-item active" id="main-tab-btn">
+                <img src="{{ url_for('static', filename='mainicon.png') }}" alt="Main Icon">
+            </div>
+            <div class="sidebar-item" id="medusa-tab-btn">
+                <img src="{{ url_for('static', filename='medusa.png') }}" alt="Medusa Icon">
+            </div>
+            <div class="sidebar-item" id="settings-tab-btn">
+                <img src="{{ url_for('static', filename='settings.png') }}" alt="Settings">
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Main Tab (HULK DDoS) -->
+            <div id="main-tab" class="tab-content active">
+                <div class="header">
+                    <h1>VD4ZDDoS Control Panel</h1>
+                </div>
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="website">Target URL</label>
+                        <input type="text" id="website" placeholder="Enter website URL">
+                    </div>
+                    <div class="input-group">
+                        <label for="threads">Threads</label>
+                        <input type="number" id="threads" placeholder="Enter threads" min="1">
+                    </div>
+                </div>
+                <div class="logs-section" id="logs"></div>
+                <div class="button-section">
+                    <button class="button" id="attack-btn">Attack Target</button>
+                    <button class="button" id="stop-btn">Stop Attack</button>
+                </div>
+            </div>
+
+            <!-- Medusa Tab (MegaMedusa DDoS) -->
+            <div id="medusa-tab" class="tab-content" style="display: none;">
+                <div class="header">
+                    <h1>MegaMedusa Control Panel</h1>
+                </div>
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="medusa-link">Target URL</label>
+                        <input type="text" id="medusa-link" placeholder="Enter website URL">
+                    </div>
+                    <div class="input-group">
+                        <label for="medusa-time">Time (seconds)</label>
+                        <input type="number" id="medusa-time" placeholder="Enter time" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="medusa-rate">Rate</label>
+                        <input type="number" id="medusa-rate" placeholder="Enter rate" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="medusa-threads">Threads</label>
+                        <input type="number" id="medusa-threads" placeholder="Enter threads" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="medusa-proxy">Proxy File</label>
+                        <input type="text" id="medusa-proxy" placeholder="Enter proxy file path">
+                    </div>
+                </div>
+                <div class="logs-section" id="medusa-logs"></div>
+                <div class="button-section" id="medusa-button-section">
+                    <button class="button" id="medusa-attack-btn">Attack Target</button>
+                    <button class="button" id="medusa-stop-btn">Stop Attack</button>
+                    <button class="button" id="medusa-setup-btn">Setup</button>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content" style="display: none;">
+                <h2>Settings</h2>
+                <div class="settings-section">
+                    <h3>Color Presets</h3>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-preset="preset-1">Preset 1</button>
+                        <button class="preset-btn" data-preset="preset-2">Preset 2</button>
+                        <button class="preset-btn" data-preset="preset-3">Preset 3</button>
+                        <button class="preset-btn" data-preset="preset-4">Preset 4</button>
+                        <button class="preset-btn" data-preset="preset-5">Preset 5</button>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Animations</h3>
+                    <div class="toggle-container">
+                        <button class="toggle-btn active" id="animations-toggle"></button>
+                        <span class="toggle-label">Enable Animations</span>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>View Mode</h3>
+                    <div class="view-mode-toggle">
+                        <label class="view-btn">
+                            <input type="radio" name="view-mode" value="compact" checked>
+                            Compact
+                        </label>
+                        <label class="view-btn">
+                            <input type="radio" name="view-mode" value="full">
+                            Full
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Element -->
+    <div class="notification" id="refresh-notification">If the website bugs, refresh!</div>
+
+    <!-- Setup Log Popup -->
+    <div class="setup-log-popup" id="setup-log-popup">
+        <div class="setup-log-header">Setup Log</div>
+        <div class="setup-log-content" id="setup-log-content"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // HULK Controls (Main Tab)
+        const websiteInput = document.getElementById('website');
+        const threadsInput = document.getElementById('threads');
+        const logsSection = document.getElementById('logs');
+        const attackBtn = document.getElementById('attack-btn');
+        const stopBtn = document.getElementById('stop-btn');
+
+        // MegaMedusa Controls (Medusa Tab)
+        const medusaLinkInput = document.getElementById('medusa-link');
+        const medusaTimeInput = document.getElementById('medusa-time');
+        const medusaRateInput = document.getElementById('medusa-rate');
+        const medusaThreadsInput = document.getElementById('medusa-threads');
+        const medusaProxyInput = document.getElementById('medusa-proxy');
+        const medusaLogsSection = document.getElementById('medusa-logs');
+        const medusaAttackBtn = document.getElementById('medusa-attack-btn');
+        const medusaStopBtn = document.getElementById('medusa-stop-btn');
+        const medusaSetupBtn = document.getElementById('medusa-setup-btn');
+        const medusaButtonSection = document.getElementById('medusa-button-section');
+
+        // Setup Log Popup Controls
+        const setupLogPopup = document.getElementById('setup-log-popup');
+        const setupLogContent = document.getElementById('setup-log-content');
+
+        // Container reference
+        const container = document.querySelector('.container');
+
+        // Check setup status on connection
+        socket.on('setup_status', (data) => {
+            if (data.isSetupComplete) {
+                medusaSetupBtn.style.display = 'none'; // Hide the Setup button if finished file exists
+            }
+        });
+
+        // Initial setup status from server (passed via template)
+        const isSetupComplete = {{ is_setup_complete | tojson }};
+        if (isSetupComplete) {
+            medusaSetupBtn.style.display = 'none';
+        }
+
+        // SocketIO Event Listeners
+        socket.on('log_update', (data) => {
+            logsSection.innerHTML += `<p>${data.data}</p>`;
+            medusaLogsSection.innerHTML += `<p>${data.data}</p>`;
+            logsSection.scrollTop = logsSection.scrollHeight;
+            medusaLogsSection.scrollTop = medusaLogsSection.scrollHeight;
+        });
+
+        socket.on('setup_log_update', (data) => {
+            if (setupLogPopup.classList.contains('active')) {
+                setupLogContent.innerHTML += `<p>${data.data}</p>`;
+                setupLogContent.scrollTop = setupLogContent.scrollHeight;
+            }
+        });
+
+        socket.on('clear_logs', () => {
+            logsSection.innerHTML = '';
+            medusaLogsSection.innerHTML = '';
+        });
+
+        socket.on('attack_status', (data) => {
+            alert(data.message);
+        });
+
+        // HULK Attack Button Handlers
+        attackBtn.addEventListener('click', () => {
+            const website = websiteInput.value;
+            const threads = threadsInput.value;
+            if (!website || !threads) {
+                alert('Please fill in both fields.');
+                return;
+            }
+            socket.emit('start_attack', { website, threads });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            socket.emit('stop_attack');
+        });
+
+        // MegaMedusa Attack Button Handlers
+        medusaAttackBtn.addEventListener('click', () => {
+            const link = medusaLinkInput.value;
+            const time = medusaTimeInput.value;
+            const rate = medusaRateInput.value;
+            const threads = medusaThreadsInput.value;
+            const proxy_file = medusaProxyInput.value;
+            if (!link || !time || !rate || !threads || !proxy_file) {
+                alert('Please fill in all fields.');
+                return;
+            }
+            socket.emit('start_medusa', { link, time, rate, threads, proxy_file });
+        });
+
+        medusaStopBtn.addEventListener('click', () => {
+            socket.emit('stop_medusa');
+        });
+
+        // Setup Button Handler
+        medusaSetupBtn.addEventListener('click', () => {
+            setupLogPopup.classList.add('active');
+            setupLogContent.innerHTML = ''; // Clear previous logs
+
+            // Trigger the setup process on the server
+            socket.emit('setup_complete');
+
+            // Close popup on click outside
+            document.addEventListener('click', function closePopup(e) {
+                if (!setupLogPopup.contains(e.target) && e.target !== medusaSetupBtn) {
+                    setupLogPopup.classList.remove('active');
+                    document.removeEventListener('click', closePopup);
+                }
+            });
+        });
+
+        // Tab Switching with Fade Effect
+        const mainTabBtn = document.getElementById('main-tab-btn');
+        const medusaTabBtn = document.getElementById('medusa-tab-btn');
+        const settingsTabBtn = document.getElementById('settings-tab-btn');
+        const mainTab = document.getElementById('main-tab');
+        const medusaTab = document.getElementById('medusa-tab');
+        const settingsTab = document.getElementById('settings-tab');
+        const tabs = [mainTab, medusaTab, settingsTab];
+        const tabButtons = [mainTabBtn, medusaTabBtn, settingsTabBtn];
+
+        function switchTab(newTab, newBtn) {
+            const currentTab = tabs.find(tab => tab.classList.contains('active'));
+            if (currentTab === newTab) return;
+
+            if (currentTab) {
+                currentTab.classList.remove('active');
+                setTimeout(() => {
+                    currentTab.style.display = 'none';
+                    newTab.style.display = 'flex';
+                    setTimeout(() => {
+                        newTab.classList.add('active');
+                    }, 10);
+                }, 300);
+            } else {
+                newTab.style.display = 'flex';
+                setTimeout(() => {
+                    newTab.classList.add('active');
+                }, 10);
+            }
+
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            newBtn.classList.add('active');
+
+            if (!container.classList.contains('full-view')) {
+                container.classList.remove('expanded');
+                if (newTab === medusaTab) {
+                    container.classList.add('expanded');
+                }
+            }
+        }
+
+        mainTabBtn.addEventListener('click', () => switchTab(mainTab, mainTabBtn));
+        medusaTabBtn.addEventListener('click', () => switchTab(medusaTab, medusaTabBtn));
+        settingsTabBtn.addEventListener('click', () => switchTab(settingsTab, settingsTabBtn));
+
+        // Settings Functionality
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = btn.dataset.preset;
+                document.body.className = '';
+                document.body.classList.add(preset);
+            });
+        });
+
+        const animationsToggle = document.getElementById('animations-toggle');
+        animationsToggle.addEventListener('click', () => {
+            animationsToggle.classList.toggle('active');
+            if (animationsToggle.classList.contains('active')) {
+                document.body.classList.remove('animations-off');
+            } else {
+                document.body.classList.add('animations-off');
+            }
+        });
+
+        // View Mode Toggle with Expansion Fix
+        const viewModeRadios = document.querySelectorAll('input[name="view-mode"]');
+        const viewModeToggle = document.querySelector('.view-mode-toggle');
+
+        viewModeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isMedusaActive = medusaTab.classList.contains('active');
+                
+                if (radio.value === 'full') {
+                    viewModeToggle.classList.add('full');
+                    container.classList.add('full-view');
+                    container.classList.remove('expanded');
+                } else {
+                    viewModeToggle.classList.remove('full');
+                    container.classList.remove('full-view');
+                    container.classList.remove('expanded');
+                    if (isMedusaActive) {
+                        container.classList.add('expanded');
+                    }
+                }
+            });
+        });
+
+        // Notification Logic
+        const notification = document.getElementById('refresh-notification');
+        function showNotification() {
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        window.addEventListener('load', showNotification);
+    </script>
+</body>
+</html>
